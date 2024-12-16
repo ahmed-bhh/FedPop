@@ -1,0 +1,46 @@
+data_params:
+  dataset_name: Mnist
+  root_path: data/MNIST
+  generate_dataloaders: true
+  train_batch_size: 100
+  test_batch_size: 100
+  regression: false
+  max_dataset_size_per_user: 500
+  n_clients_with_min_datasets: 0
+  specific_dataset_params:
+    n_clients: 10  # Nombre d'utilisateurs total
+    num_classes: 10
+    classes_per_user: 5
+
+eval_params:
+  metrics:
+    - accuracy
+
+model_params:
+  model_name: pbnn
+  weight_scale: 0.1
+  rho_offset: -3
+  zeta: 10
+  beta: 1.0
+  lamda: 15  # Terme de régularisation
+
+optimization:
+  optimizer_name: SGD
+  learning_rate: 0.001  # Taux d'apprentissage local
+  personal_learning_rate: 0.001  # Taux d'apprentissage personnalisé pour les étapes locales
+  local_epochs: 20  # Nombre d'époques locales
+  global_iters: 10  # Nombre d'itérations globales
+  computation_steps: 5  # Nombre de pas de calculs locaux par utilisateur
+
+train_params:
+  algorithm: FedBayes  # Méthode d'entraînement choisie
+  num_clients_per_round: 10  # Nombre d'utilisateurs sélectionnés par tour
+  device: cpu
+  exp_folder: ./experiment_logs_fedbayes/
+  seeds:
+    - 41
+  verbose: false
+  verbose_freq: 10
+
+runtime_params:
+  num_runs: 1  # Nombre de fois que l'expérience sera exécutée

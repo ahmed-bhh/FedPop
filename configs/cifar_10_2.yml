@@ -1,43 +1,53 @@
-data_params:
-  dataset_name: cifar10
-  generate_dataloaders: true
-  max_dataset_size_per_user: 500
+data_params: #configuration des donnes
+  dataset_name: cifar10 #use CIFAR-10 dataset => set of (32*32 pixels images) 10=>10 clases (cats,cars,dogs,etc)
+  generate_dataloaders: true #generation automatique de dataloaders qui permet de charger les donnees par petits ensemble appelés "batches"
+  max_dataset_size_per_user: 500 #chque client son max de jeux de donnes local est 500
   min_dataset_size_per_user: 500
   n_clients_with_min_datasets: 0
-  regression: false
+  regression: false #probleme qui est une tache de classification pas regression
+  #Une tâche de classification consiste à prédire une catégorie (ou classe) discrète.
+  #Exemple :
+  #Entrée : Une image.
+  #Sortie attendue : Catégorie de l'image (par exemple, "chat" ou "chien").
   root_path: data/cifar10
   specific_dataset_params:
     classes_per_user: 2
-    n_clients: 100
+    #Explication :
+    #Cette ligne signifie que chaque client ne reçoit des données que pour 2 classes sur les 10 disponibles.
+    #Par exemple, le client 1 peut recevoir des images de chats et de voitures, tandis que le client 2 peut recevoir des images de chiens et d'avions.
+    #Pourquoi est-ce utile ?
+    #Cela simule un scénario non-i.i.d(non-indépendamment et identiquement distribuées). dans l'apprentissage fédéré. Dans la vraie vie :
+    #Un appareil peut ne pas avoir accès à toutes les catégories de données (par exemple, une caméra de surveillance pourrait voir principalement des voitures et non des avions).
+    n_clients: 10 #Il y a 100 clients participants à l'entraînement fédéré.
     num_classes: 10
-  test_batch_size: 100
-  train_batch_size: 60
-eval_params:
+  test_batch_size: 100 #les données sont traitées par groupes de 100 exemples à la fois
+  train_batch_size: 60 #question:what is the difference between train and test batch size
+eval_params: #Paramètres d'évaluation
   metrics:
-  - accuracy
-model_params:
-  backbone_model_name: IdenticalBackbone
+  - accuracy # La précision est utilisée comme métrique pour évaluer les performances des modèles
+model_params: #Configuration des modèles
+  backbone_model_name: IdenticalBackbone #Nom du modèle de base partagé par tous les clients
   backbone_model_params:
-    backbone_embedding_size: 10
-  composition_model_regime: composition
+    backbone_embedding_size: 10 #question: what is backbone
+  composition_model_regime: composition #Indique que le modèle combine un modèle partagé avec un modèle personnel
   personal_model_name: MLPClassificationImages_personal
   personal_model_params:
-    input_size: 64
-    n_classes: 10
-  prior_model_name: GaussianPriorModel
+    input_size: 64 #La taille de l'entrée pour le modèle personnel est de 64.
+    n_classes: 10 #Le modèle personnel doit classer les données dans 10 classes
+  prior_model_name: GaussianPriorModel #un modèle prior est une hypothèse initiale sur la distribution des paramètres (ou des données), avant de voir les données d’entraînement
   prior_model_params:
-    fix_mu: true
-    fix_scale: true
+    fix_mu: true #La moyenne (mu) du prior est fixée et ne change pas pendant l'entraînement.
+    fix_scale: true #la variance est aussi fixé
     in_features: 650
     n_modes: null
     scale_init: 0.54
     scale_value: 0.54
-  shared_model_name: BigBaseConvNetCIFAR
+  shared_model_name: BigBaseConvNetCIFAR #Ce modèle est partagé entre tous les clients dans l'apprentissage fédéré.
   shared_model_params:
-    shared_embedding_size: 64
+    shared_embedding_size: 64 #exemple:Une image d'entrée (32x32x3) passe par le modèle et est convertie en un vecteur de 64 dimensions qui capture ses caractéristiques importantes
   shared_prior_model: true
 optimization:
-  backbone_optimizer: Adam
+  backbone_optimizer: Adam #Adam(Adaptive Moment Estimation) #Un optimiseur couramment utilisé pour la mise à jour des poids des réseaux neuronaux
   backbone_optimizer_params: {}
   backbone_scheduler: CyclicLR
   backbone_scheduler_params:

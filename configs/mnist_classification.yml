@@ -1,4 +1,4 @@
-data_params:
+data_params: #data_params
   dataset_name: mnist
   root_path: data/MNIST
   generate_dataloaders: True
@@ -8,7 +8,7 @@ data_params:
   max_dataset_size_per_user: 500
   n_clients_with_min_datasets: 0
   specific_dataset_params: {
-    n_clients: 100, # 15 clients: 15 # 100 clients: 100
+    n_clients: 10, # 15 clients: 15 # 100 clients: 100
     num_classes: 10,
     classes_per_user: 5,
   }
@@ -85,8 +85,9 @@ optimization:
     mode: exp_range
     step_size_up: 10
 train_params:
+  algorithm: FedPop
   clients_sample_size: 10
-  device: cuda:1
+  device: cuda:0
   exp_folder: ./experiment_logs_mnist/
   inner_burn_in: 5
   inner_iters: 10
@@ -100,3 +101,4 @@ train_params:
   use_sgld: false
   verbose: false
   verbose_freq: 10
+

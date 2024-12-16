@@ -109,6 +109,11 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+venv3.10
+experiment_logs
+experiment_logs_mnist
+data
+data/mnist/data/test/mnist_test.json
 
 # Spyder project settings
 .spyderproject
