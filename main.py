@@ -1,5 +1,5 @@
 from collections import defaultdict
-
+import click
 import numpy as np
 import torch
 import torch.nn as nn
@@ -15,6 +15,51 @@ from src.utils import seed_everything, parse_args, get_config, dotdict, count_pa
 import yaml
 
 from utils.plot_utils import average_data
+from vem import train
+
+def parse_yaml_to_flat_dict(config_data):
+    """
+    Convertit un fichier YAML structuré en un dictionnaire aplati avec des clés spécifiques.
+    """
+    flat_config = {
+        "model": config_data["model_params"]["model_name"],
+        "dataset": config_data["data_params"]["dataset_name"],
+        "path_to_data": config_data["data_params"]["root_path"],
+        "batch_size": config_data["data_params"]["train_batch_size"],
+        "lr_head": config_data["optimization"]["learning_rate"],
+        "lr_base": config_data["optimization"]["personal_learning_rate"],
+        "base_epochs": config_data["optimization"]["local_epochs"],
+        "momentum": 0.9,  # Momentum est manquant dans le YAML, on peut l'ajouter comme valeur par défaut
+        "n_labels": config_data["data_params"]["specific_dataset_params"]["classes_per_user"],
+        "n_rounds": config_data["optimization"]["global_iters"],
+        "n_clients": config_data["data_params"]["specific_dataset_params"]["n_clients"],
+        "sampling_rate": config_data["train_params"]["num_clients_per_round"] / config_data["data_params"]["specific_dataset_params"]["n_clients"],
+        "seed": config_data["train_params"]["seeds"][0],
+        "relabel": False,  # Relabel est manquant dans le YAML, on peut l'ajouter comme valeur par défaut
+        "head_epochs": 10,  # Valeur par défaut ajoutée
+        "scale": config_data["model_params"]["weight_scale"],
+        "max_data": config_data["data_params"]["max_dataset_size_per_user"],
+        "beta": config_data["model_params"]["beta"],
+        "n_mc": 5,  # Valeur par défaut ajoutée
+    }
+    return flat_config
+@click.command()
+@click.option(
+            "--config", help="Path to the configuration file (YAML).", default=None,
+)
+def PFL(**kwargs):
+    if kwargs["config"]:
+        with open(kwargs["config"], 'r') as f:
+            # Charger le YAML
+            config_data = yaml.safe_load(f)
+            # Transformer en dictionnaire aplati
+            flat_config = parse_yaml_to_flat_dict(config_data)
+            kwargs.update(flat_config)
+    # Supprimer la clé 'config' après chargement
+    kwargs.pop("config", None)
+
+    print(kwargs)  # Affichage pour vérification
+    train(**kwargs)
 
 
 def run(config, trial=None) -> dict:
@@ -278,6 +323,11 @@ def run(config, trial=None) -> dict:
          rho_offset=model_params.rho_offset,
          zeta=model_params.zeta
      )
+    if train_params.algorithm == 'PFL':
+
+        print("PFL  IF")
+        PFL()
+
 
 def main(dataset, algorithm, model, batch_size, learning_rate, beta, lamda, num_glob_iters,
          local_epochs, optimizer, numusers, K, personal_learning_rate, times, device,
