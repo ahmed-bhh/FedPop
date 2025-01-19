@@ -1,5 +1,5 @@
 data_params: #data_params
-  dataset_name: mnist
+  dataset_name: fmnist
   root_path: data/MNIST
   generate_dataloaders: True
   train_batch_size: 100
@@ -87,7 +87,7 @@ optimization:
 train_params:
   algorithm: FedPop
   clients_sample_size: 10
-  device: cuda:0
+  device: cuda
   exp_folder: ./experiment_logs_mnist/
   inner_burn_in: 5
   inner_iters: 10

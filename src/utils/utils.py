@@ -9,6 +9,7 @@ import torch
 import torch.nn as nn
 import yaml
 from sklearn.metrics import accuracy_score
+from torch import device
 
 
 def pretty_matplotlib_config(fontsize=15):
@@ -109,7 +110,12 @@ def compute_accuracy(model, loader):
     all_true_labels = torch.tensor([])
     with torch.no_grad():
         for x, y in loader:
+            print(x.get_device())
+            print(y.get_device())
+            x = x.to("cuda")
+            print(x.get_device())
             y_pred = torch.argmax(model(x), -1).cpu().squeeze()
+            print(y_pred.get_device())
             if len(y_pred.shape) == 0:
                 y_pred = y_pred.view(1, )
             all_predictions = torch.cat([all_predictions, y_pred])
@@ -180,8 +186,11 @@ def compute_metric(metric, personal_models, loaders, composition_regime, shared_
         else:
             personal_model = personal_models[i].model
 
+        # Vérifiez si loaders est une liste ou un unique DataLoader
+        loader = loaders[i] if isinstance(loaders, list) else loaders
+
         if metric == 'accuracy':
-            metrics.append(compute_accuracy(model=personal_model, loader=loaders[i]))
+            metrics.append(compute_accuracy(model=personal_model, loader=loader))
         elif metric == 'mse':
             metrics.append(compute_mse(model=personal_model, loader=loaders[i]))
         elif metric == 'multivariate_mse':

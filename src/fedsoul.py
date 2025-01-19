@@ -131,9 +131,10 @@ def FedSOUL(outer_iters: int,
                         parameters_to_vector(personal_models[j].model.parameters()))
                     log_likelihood_term = torch.zeros_like(prior_negative_log_prob)
                     if compute_likelihood_term == "with_ll":
+                       # print("xxxxxxxx data_loaders[j]=",local_dataloaders)
                         log_likelihood_term = compute_likelihood(personal_model=personal_models[j],
                                                                  shared_model=shared_model,
-                                                                 dataloader=local_dataloaders[j],
+                                                                 dataloader=local_dataloaders,
                                                                  log_likelihood_fn=log_likelihood_fn,
                                                                  composition_regime=composition_regime,
                                                                  use_sgld=use_sgld)
@@ -217,7 +218,7 @@ def FedSOUL(outer_iters: int,
                         p.requires_grad_(False)
                     current_ll = compute_likelihood(personal_model=personal_models[j],
                                                     shared_model=shared_model,
-                                                    dataloader=local_dataloaders[j],
+                                                    dataloader=local_dataloaders,
                                                     log_likelihood_fn=log_likelihood_fn,
                                                     composition_regime=composition_regime,
                                                     use_sgld=use_sgld)[None]

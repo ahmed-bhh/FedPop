@@ -4,6 +4,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 from src.data import get_dataloaders
+from src.data.data_loader_merge import get_dataloader_merge
+from src.data.new_data_loader.data import get_dataloader1
 from src.fedsoul import FedSOUL
 import argparse
 from src.models import PersonalModel
@@ -16,6 +18,8 @@ import yaml
 
 from utils.plot_utils import average_data
 from vem import train
+
+
 
 def parse_yaml_to_flat_dict(config_data):
     """
@@ -83,6 +87,7 @@ def run(config, trial=None) -> dict:
     #exit()
     N_PERSONAL_MODELS = train_params.n_personal_models
     #print("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY",train_params.algorithm)
+    ###begining of FedPop
     if train_params.algorithm == 'FedPop':
         print("you are using",train_params.algorithm)
         # Here we define log prior function
@@ -124,19 +129,26 @@ def run(config, trial=None) -> dict:
         # Here we start cycle over different seeds
         for seed in train_params.seeds:
             seed_everything(seed)
-            train_loaders, test_loaders = get_dataloaders(generate_data=data_params.generate_dataloaders,
-                                                          dataset_name=data_params.dataset_name,
-                                                          specific_dataset_params=data_params.specific_dataset_params,
-                                                          root_path=data_params.root_path,
-                                                          batch_size_train=data_params.train_batch_size,
-                                                          batch_size_test=data_params.test_batch_size,
-                                                          DEVICE=DEVICE,
-                                                          regression=data_params.regression,
-                                                          max_dataset_size_per_user=data_params.max_dataset_size_per_user,
-                                                          min_dataset_size_per_user=data_params.min_dataset_size_per_user,
-                                                          n_clients_with_min_datasets=data_params.n_clients_with_min_datasets,
-                                                          )
-
+            # train_loaders, test_loaders = get_dataloaders(generate_data=data_params.generate_dataloaders,
+            #                                               dataset_name=data_params.dataset_name,
+            #                                               specific_dataset_params=data_params.specific_dataset_params,
+            #                                               root_path=data_params.root_path,
+            #                                               batch_size_train=data_params.train_batch_size,
+            #                                               batch_size_test=data_params.test_batch_size,
+            #                                               DEVICE=DEVICE,
+            #                                               regression=data_params.regression,
+            #                                               max_dataset_size_per_user=data_params.max_dataset_size_per_user,
+            #                                               min_dataset_size_per_user=data_params.min_dataset_size_per_user,
+            #                                               n_clients_with_min_datasets=data_params.n_clients_with_min_datasets,
+            #                                               )
+            train_loaders, test_loaders = get_dataloader1(
+                dataset=data_params.dataset_name,
+                datadir=data_params.root_path,
+                train_bs=data_params.train_batch_size,
+                test_bs=data_params.test_batch_size,
+                train_dataidxs=data_params.train_dataidxs if hasattr(data_params, 'train_dataidxs') else None,
+                test_dataidxs=data_params.test_dataidxs if hasattr(data_params, 'test_dataidxs') else None
+            )
             # We define one shared model
             shared_model = set_model(model_name=model_params.shared_model_name, device=DEVICE,
                                      model_params=model_params.shared_model_params, model_type='shared')
@@ -289,6 +301,7 @@ def run(config, trial=None) -> dict:
             "train_loaders": train_loaders,
             "test_loaders": test_loaders
         }
+    #####End of FedPop
     if train_params.algorithm == 'FedBayes':
      runtime_params = dotdict(config['runtime_params'])
 
@@ -468,8 +481,11 @@ def runFedBayes():
 
 
 if __name__ == '__main__':
+    DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Using device: {DEVICE}")
     args = parse_args()
     conf = get_config(args.config) #ici on utulise l argument --config passer comme argument est convertis en dictionnair python
+    get_dataloader_merge(conf['train_params']['algorithm'])
     print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXx",conf['train_params']['algorithm'])
 
    # if conf['train_params']['algorithm'] == 'FedPop':
