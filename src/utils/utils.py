@@ -47,14 +47,17 @@ def compute_likelihood(personal_model: nn.Module, dataloader: torch.utils.data.D
     personal_model = composed_model(shared_model=shared_model, personal_model=personal_model,
                                     composition_regime=composition_regime)
     for x, y in dataloader:
-        y_pred = personal_model(x)
+        #y_pred = personal_model(x)
+        y_pred = personal_model(x.to("cuda"))
         y = y.squeeze()
-        y_pred = y_pred.squeeze()
+        y_pred = y_pred.squeeze().to("cpu")
 
         if log_likelihood is None:
             log_likelihood = log_likelihood_fn(y_pred, y)
+           # log_likelihood = log_likelihood_fn(y_pred, y.to("cuda"))
         else:
             log_likelihood += log_likelihood_fn(y_pred, y)
+            #log_likelihood += log_likelihood_fn(y_pred, y.to("cuda"))
         if use_sgld:
             break
     return log_likelihood
@@ -92,7 +95,7 @@ def parse_args():
     # parser.add_argument('--config', type=str, default="configs/toy_multivariate_gaussian_mean_prediction.yml")
     # parser.add_argument('--config', type=str, default="configs/toy_regression.yml")
     # parser.add_argument('--config', type=str, default="configs/toy_classification.yml")
-    # parser.add_argument('--config', type=str, default="configs/mnist_classification.yml")
+    # parser.add_argument('--config', type=str, default="configs/mnist_classification_FedPop.yml")
     # parser.add_argument('--config', type=str, default="configs/femnist_classification.yml")
     parser.add_argument('--config', type=str, default="configs/cifar10_classification.yml")
     # parser.add_argument('--config', type=str, default="configs/cifar100_classification.yml")
@@ -110,12 +113,14 @@ def compute_accuracy(model, loader):
     all_true_labels = torch.tensor([])
     with torch.no_grad():
         for x, y in loader:
-            print(x.get_device())
-            print(y.get_device())
-            x = x.to("cuda")
-            print(x.get_device())
-            y_pred = torch.argmax(model(x), -1).cpu().squeeze()
-            print(y_pred.get_device())
+           #print(x.get_device())
+           #print(y.get_device())
+           # x = x.to("cuda")
+            #print(x.get_device())
+          #  y_pred = torch.argmax(model(x.to("cuda")), -1).cpu().squeeze()
+            y_pred = torch.argmax(model(x.to("cuda")), -1).cpu().squeeze()
+
+        #print(y_pred.get_device())
             if len(y_pred.shape) == 0:
                 y_pred = y_pred.view(1, )
             all_predictions = torch.cat([all_predictions, y_pred])
@@ -188,9 +193,11 @@ def compute_metric(metric, personal_models, loaders, composition_regime, shared_
 
         # Vérifiez si loaders est une liste ou un unique DataLoader
         loader = loaders[i] if isinstance(loaders, list) else loaders
+       # print("xxxxxxxxxxxxxxx",loaders)
 
         if metric == 'accuracy':
             metrics.append(compute_accuracy(model=personal_model, loader=loader))
+           # metrics.append(compute_accuracy(model=personal_model, loader=loader[i]))
         elif metric == 'mse':
             metrics.append(compute_mse(model=personal_model, loader=loaders[i]))
         elif metric == 'multivariate_mse':
@@ -200,8 +207,11 @@ def compute_metric(metric, personal_models, loaders, composition_regime, shared_
 
 
 def composed_model(shared_model, personal_model, composition_regime):
+    shared_model = shared_model.to("cuda")
+    personal_model = personal_model.to("cuda")
     if composition_regime == 'concatenation':
         return lambda x: personal_model.model(torch.cat([shared_model(x), personal_model.backbone_model(x)], dim=-1))
+
     if composition_regime == 'composition':
         return lambda x: personal_model.model(shared_model(x))
     elif composition_regime == 'separate_params':

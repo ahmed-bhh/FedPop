@@ -238,7 +238,7 @@ class SVHN_truncated(data.Dataset):
     def __len__(self):
         return len(self.data)
     
-def get_dataloader1(dataset, datadir, train_bs, test_bs, train_dataidxs=None, test_dataidxs=None):
+def get_dataloader_BFL(dataset, datadir, train_bs, test_bs, train_dataidxs=None, test_dataidxs=None):
     if dataset == 'cifar10':
         dl_obj = CIFAR10_truncated
         transform_train = transforms.Compose([
@@ -402,5 +402,5 @@ def partition_data(args, logger):
 def data_handler(args, logger):
     logger.info("Partitioning data")
     net_dataidx_map = partition_data(args, logger)
-    _, test_dl_global = get_dataloader1(args.dataset, args.datadir, args.batch_size, 32)
+    _, test_dl_global = get_dataloader_BFL(args.dataset, args.datadir, args.batch_size, 32)
     return test_dl_global, net_dataidx_map 

@@ -152,10 +152,10 @@ def FedSOUL(outer_iters: int,
                         backbone_schedulers[j].step()
                         backbone_optims[j].zero_grad()
 
-                    if m >= burn_in:
-                        current_sample = parameters_to_vector(personal_models[j].model.parameters())[None].detach()
+                    #if m >= burn_in:
+                    current_sample = parameters_to_vector(personal_models[j].model.parameters())[None].detach()
 
-                        approximate_theta_samples[compute_likelihood_term] = torch.cat(
+                    approximate_theta_samples[compute_likelihood_term] = torch.cat(
                             [approximate_theta_samples[compute_likelihood_term], current_sample])
 
                 personal_models[j].theta[compute_likelihood_term] = current_sample[0]  # 0 here to unsqueeze dimension
@@ -206,16 +206,28 @@ def FedSOUL(outer_iters: int,
             shared_model.train()
 
             ## Phi machinery...
-            for phi_iter in range(
-                    inner_iters - burn_in):  # range(inner_iters - burn_in):  # worth to introduce another variable
+            for phi_iter in range(inner_iters - burn_in):
                 accumulated_ll = None
+
                 for personal_vector in theta:
-                    vector_to_parameters(vec=personal_vector,
-                                         parameters=personal_models[j].model.parameters())
-                    for p in personal_models[j].model.parameters():  # check if it is needed!
+                    # Checking personal_vector for NaN or Inf
+                    if torch.any(torch.isnan(personal_vector)) or torch.any(torch.isinf(personal_vector)):
+                        print(f"Warning: personal_vector contains NaN or Inf: {personal_vector}")
+
+                    vector_to_parameters(vec=personal_vector, parameters=personal_models[j].model.parameters())
+
+                    # Disable gradients
+                    for p in personal_models[j].model.parameters():
                         p.requires_grad_(False)
                     for p in personal_models[j].backbone_model.parameters():
                         p.requires_grad_(False)
+
+                    # Check if model parameters have NaN or Inf
+                    for param in personal_models[j].model.parameters():
+                        if torch.any(torch.isnan(param)) or torch.any(torch.isinf(param)):
+                            print(f"Warning: model parameter contains NaN or Inf: {param}")
+
+                    # Compute current likelihood and check for NaN or Inf
                     current_ll = compute_likelihood(personal_model=personal_models[j],
                                                     shared_model=shared_model,
                                                     dataloader=local_dataloaders,
@@ -223,22 +235,49 @@ def FedSOUL(outer_iters: int,
                                                     composition_regime=composition_regime,
                                                     use_sgld=use_sgld)[None]
 
+                    if torch.any(torch.isnan(current_ll)) or torch.any(torch.isinf(current_ll)):
+                        print(f"Warning: current_ll contains NaN or Inf: {current_ll}")
+
                     if accumulated_ll is None:
                         accumulated_ll = current_ll
                     else:
                         accumulated_ll = torch.cat([accumulated_ll, multiplier * current_ll])
 
+                # Check if accumulated_ll contains NaN or Inf
+                if torch.any(torch.isnan(accumulated_ll)) or torch.any(torch.isinf(accumulated_ll)):
+                    print(f"Warning: accumulated_ll contains NaN or Inf: {accumulated_ll}")
+
+                print("accumulated_ll=(before)",accumulated_ll)
                 accumulated_ll = torch.mean(accumulated_ll, dim=0)
+                print("accumulated_ll=(after)", accumulated_ll)
+                # Check if the final loss has NaN or Inf values
+                print(clients_sample_size)
+                loss_value = (-(len(personal_models) / clients_sample_size) * accumulated_ll)
+                if torch.any(torch.isnan(loss_value)) or torch.any(torch.isinf(loss_value)):
+                    print(f"Warning: loss_value contains NaN or Inf before backward: {loss_value}")
+                else:
+                    loss_value.backward()
+                    shared_optim.step()
+                    shared_scheduler.step()
+                    shared_optim.zero_grad()
 
-                (-(len(personal_models) / clients_sample_size) * accumulated_ll).backward()
-                shared_optim.step()
-                shared_scheduler.step()
-                shared_optim.zero_grad()
+                # Check for NaN/Inf in the shared_model_loss list before appending
+                if torch.any(torch.isnan(loss_value)) or torch.any(torch.isinf(loss_value)):
+                    print(f"Warning: NaN or Inf in loss_value before appending to shared_model_loss.")
+                else:
+                    shared_model_loss.append(loss_value.item())
 
-                shared_model_loss.append((-(len(personal_models) / clients_sample_size) * accumulated_ll).item())
+                print(f"Epoch {outer_iter}, shared_model_loss length: {len(shared_model_loss)}")
 
-        shared_model_loss = np.mean(shared_model_loss)
-        print(f"Epoch {outer_iter}, shared_model_loss is {shared_model_loss}")
+
+
+            # After the loop, check if any NaN or Inf is present before calculating mean
+            if np.any(np.isnan(shared_model_loss)) or np.any(np.isinf(shared_model_loss)):
+                print(f"Warning: NaN or Inf detected in shared_model_loss before mean calculation: {shared_model_loss}")
+            else:
+                shared_model_loss = np.mean(shared_model_loss)
+
+            print(f"Epoch {outer_iter}, shared_model_loss is {shared_model_loss}")
 
         for p in shared_model.parameters():
             p.requires_grad_(False)

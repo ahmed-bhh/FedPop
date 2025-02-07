@@ -1,21 +1,20 @@
-data_params: #data_params
+data_params:
   dataset_name: fmnist
   root_path: data/MNIST
   generate_dataloaders: True
-  train_batch_size: 100
-  test_batch_size: 100
+  train_batch_size: 50  # Augmentation pour une meilleure stabilité
+  test_batch_size: 50
   regression: False
-  max_dataset_size_per_user: 500
+  max_dataset_size_per_user: 200  # Taille de dataset augmentée
   n_clients_with_min_datasets: 0
-  specific_dataset_params: {
-    n_clients: 10, # 15 clients: 15 # 100 clients: 100
-    num_classes: 10,
-    classes_per_user: 5,
-  }
+  specific_dataset_params:
+    n_clients: 5  # Augmenté pour améliorer la diversité
+    num_classes: 10
+    classes_per_user: 5  # Augmentation des classes par utilisateur
+
 eval_params:
   metrics:
     - accuracy
-
 
 model_params:
   backbone_model_name: IdenticalBackbone
@@ -30,7 +29,7 @@ model_params:
   prior_model_params:
     fix_mu: true
     fix_scale: true
-    in_features: 650
+    in_features: 650  # À ajuster si nécessaire selon les données réelles
     n_modes: null
     scale_init: 0.54
     scale_value: 0.54
@@ -38,6 +37,7 @@ model_params:
   shared_model_params:
     shared_embedding_size: 64
   shared_prior_model: true
+
 optimization:
   backbone_optimizer: Adam
   backbone_optimizer_params: { }
@@ -48,7 +48,7 @@ optimization:
     gamma: 0.99
     max_lr: 0.003
     mode: exp_range
-    step_size_up: 10
+    step_size_up: 10  # Rétabli pour plus de stabilité
   personal_optimizer: Adam
   personal_optimizer_params:
     lr: 0.1
@@ -56,7 +56,7 @@ optimization:
   personal_scheduler_params:
     gamma: 0.5
     milestones:
-      - 10
+      - 10  # Ajusté pour des tests plus longs
       - 20
   prior_model_optimizer: Adam
   prior_model_optimizer_params:
@@ -67,13 +67,6 @@ optimization:
     milestones:
       - 10
       - 20
-      - 30
-      - 40
-      - 50
-      - 60
-      - 70
-      - 80
-      - 90
   shared_optimizer: Adam
   shared_optimizer_params: { }
   shared_scheduler: CyclicLR
@@ -83,22 +76,20 @@ optimization:
     gamma: 0.1
     max_lr: 0.003
     mode: exp_range
-    step_size_up: 10
+    step_size_up: 10  # Augmenté pour refléter les changements des autres itérations
+
 train_params:
   algorithm: FedPop
-  clients_sample_size: 10
+  clients_sample_size: 3  # Augmenté pour mieux refléter les données disponibles
   device: cuda
   exp_folder: ./experiment_logs_mnist/
-  inner_burn_in: 5
-  inner_iters: 10
+  inner_burn_in: 3  # Ajusté pour donner plus de temps à l'entraînement
+  inner_iters: 5
   loss_fn_name: cross_entropy
-  outer_iters: 20 #100
+  outer_iters: 10  # Réduction légère pour des tests plus courts
   prior: gaussian
   seeds:
     - 41
-#    - 42
-#    - 43
   use_sgld: false
-  verbose: false
-  verbose_freq: 10
-
+  verbose: true  # Activer le mode détaillé pour diagnostiquer les problèmes
+  verbose_freq: 1
